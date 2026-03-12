@@ -12,10 +12,7 @@ from dotenv import load_dotenv
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 load_dotenv()
 
-# ==========================================================
-# РЕЖИМ РАБОТЫ
-# ==========================================================
-MOCK_MODE = True  # Смени на False для работы с реальным сервером
+MOCK_MODE = True 
 
 class TableauFreezer:
     def __init__(self):
@@ -48,7 +45,6 @@ class TableauFreezer:
             else:
                 return pd.DataFrame({'Target': ['Mock'], 'Value': [0]})
 
-        # --- ТВОЯ ОРИГИНАЛЬНАЯ ЛОГИКА ПОИСКА (1 в 1) ---
         with self.server.auth.sign_in(self.auth):
             print(f"🔍 Начинаю поиск для: {workbook_name_or_path}")
 
@@ -60,14 +56,12 @@ class TableauFreezer:
                 search_name = parts[0]
                 target_sheet_name = parts[-1].split("?")[0]
 
-            # Двойной поиск: сначала по имени
             req_options = TSC.RequestOptions()
             req_options.filter.add(TSC.Filter(TSC.RequestOptions.Field.Name,
                                              TSC.RequestOptions.Operator.Equals,
                                              search_name))
             workbooks, _ = self.server.workbooks.get(req_options)
             
-            # Если не нашли по имени, ищем по ContentUrl
             if not workbooks:
                 req_options = TSC.RequestOptions()
                 req_options.filter.add(TSC.Filter(TSC.RequestOptions.Field.ContentUrl,
@@ -88,7 +82,6 @@ class TableauFreezer:
             if not view_id and target_workbook.views:
                 view_id = target_workbook.views[0].id
 
-            # Запрос через REST API
             endpoint = f"{self.server_url}/api/{self.server.version}/sites/{self.server.site_id}/views/{view_id}/data"
             headers = {'X-Tableau-Auth': self.server.auth_token}
             
@@ -103,19 +96,15 @@ class TableauFreezer:
             print("⚠️ DataFrame пуст.")
             return None
         
-        # 1. Очистка имен колонок
         df.columns = [str(col).strip() for col in df.columns]
         
-        # 2. ТВОЯ УМНАЯ ОЧИСТКА ДАННЫХ (Regex и типы)
         for col in df.columns:
-            # Обработка дат
             if 'дата' in col.lower() or 'date' in col.lower():
                 try:
                     df[col] = pd.to_datetime(df[col], dayfirst=True)
                     continue 
                 except: pass
 
-            # Тот самый Regex для чисел, который я пропустил
             if df[col].dtype == 'object':
                 try:
                     cleaned = df[col].astype(str).str.replace(r'\s+', '', regex=True).str.replace(',', '.')
@@ -124,7 +113,6 @@ class TableauFreezer:
                 except:
                     df[col] = df[col].astype(str)
                         
-        # 3. Настройка окружения для логов Hyper
         hyper_temp = Path("hyper_temp")
         hyper_temp.mkdir(exist_ok=True)
         os.environ["HYPER_LOG_DIR"] = str(hyper_temp.absolute())
@@ -167,7 +155,6 @@ class TableauFreezer:
             return published_ds.id
 
 
-# --- Блок тестирования ---
 if __name__ == "__main__":
     freezer = TableauFreezer()
     

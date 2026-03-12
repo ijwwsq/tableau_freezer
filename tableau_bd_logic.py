@@ -73,7 +73,6 @@ class TableauFreezer:
                 if not task:
                     return {"success": False, "message": "Задача не найдена"}
                 
-                # Проверяй имя колонки здесь! (DASHBOARD или REPORT_NAME)
                 db_name = task['REPORT_NAME'] 
                 
                 if task['APPROVER_USER'] != current_user:
@@ -82,13 +81,10 @@ class TableauFreezer:
                 if task['STATUS'] != 'PENDING':
                     return {"success": False, "message": f"Статус: {task['STATUS']}"}
 
-                # Достаем весь конфиг (шаблон + код)
                 report_meta = REPORTS_SQL.get(db_name)
                 if not report_meta:
                     return {"success": False, "message": f"Отчет '{db_name}' не найден в реестре"}
 
-                # Сборка SQL (передаем весь словарь report_meta)
-                # Внутри _build_vertica_sql мы вытащим 'template' и 'tool_code'
                 final_sql = self._build_vertica_sql(task, report_meta)
                 
                 # ВЫЗОВ ВЕРТИКИ
@@ -103,8 +99,7 @@ class TableauFreezer:
                 
                 return {"success": True}
         except Exception as e:
-            # ОЧЕНЬ ВАЖНО: принтим ошибку в консоль сервера, чтобы видеть реальную причину
-            print(f"🔥 КРИТИЧЕСКАЯ ОШИБКА В final_approve: {e}")
+            print(f"КРИТИЧЕСКАЯ ОШИБКА В final_approve: {e}")
             return {"success": False, "message": str(e)}
 
     def _build_vertica_sql(self, task, base_sql):
